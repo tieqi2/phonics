@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>自然拼读趣味练习</title>
+    <style>
+        body { font-family: 'Comic Sans MS', 'Chalkboard SE', sans-serif; background-color: #feca57; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .container { background-color: white; width: 90%; max-width: 500px; padding: 30px; border-radius: 20px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        h1 { color: #54a0ff; margin-bottom: 5px; }
+        .play-btn { background-color: #54a0ff; color: white; border: none; border-radius: 50%; width: 80px; height: 80px; font-size: 40px; cursor: pointer; margin: 20px 0; box-shadow: 0 5px 0 #2e86de; transition: transform 0.1s; }
+        .play-btn:active { transform: translateY(5px); box-shadow: none; }
+        .options { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
+        .option-btn { padding: 15px; font-size: 1.5em; border: 3px solid #eee; border-radius: 15px; background: white; cursor: pointer; font-weight: bold; color: #555; transition: all 0.2s; }
+        .option-btn:hover { border-color: #54a0ff; color: #54a0ff; transform: translateY(-2px); }
+        .correct { background-color: #1dd1a1 !important; color: white !important; border-color: #1dd1a1 !important; }
+        .wrong { background-color: #ff6b6b !important; color: white !important; border-color: #ff6b6b !important; animation: shake 0.4s; }
+        @keyframes shake { 0%, 100% {transform: translateX(0);} 25% {transform: translateX(-5px);} 75% {transform: translateX(5px);} }
+        #feedback { height: 30px; margin-top: 15px; font-weight: bold; font-size: 1.2em; }
+        .next-btn { background-color: #ff9f43; color: white; border: none; padding: 12px 35px; border-radius: 25px; font-size: 1.2em; cursor: pointer; margin-top: 20px; display: none; box-shadow: 0 4px 0 #e58e26; font-weight: bold; }
+        .next-btn:active { transform: translateY(4px); box-shadow: none; }
+        .score-board { display: flex; justify-content: space-between; font-size: 1.1em; color: #888; margin-bottom: 20px; border-bottom: 2px dashed #eee; padding-bottom: 10px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div id="game">
+        <div class="score-board">
+            <span>题号: <span id="q-num">1</span>/5</span>
+            <span>得分: <span id="score">0</span></span>
+        </div>
+        <h1>🎧 听音选词</h1>
+        <p style="color:#aaa; font-size:0.9em;">点击蓝色喇叭听发音</p>
+        <button class="play-btn" onclick="playAudio()">🔊</button>
+        <div class="options" id="options"></div>
+        <div id="feedback"></div>
+        <button class="next-btn" id="next" onclick="nextQ()">下一题 ➔</button>
+    </div>
+    <div id="result" style="display:none;">
+        <h1 style="font-size: 3em; margin-bottom: 10px;">🎉</h1>
+        <h1>练习完成!</h1>
+        <p>最终得分: <span id="final-score" style="font-size:2.5em; color:#ff9f43; font-weight:bold; vertical-align:middle; margin-left:10px;"></span></p>
+        <div id="comment" style="color:#888; margin-bottom:30px;"></div>
+        <button class="next-btn" style="display:inline-block;" onclick="location.reload()">再练一次 ↺</button>
+    </div>
+</div>
+<script>
+    // 题目配置：这里可以无限加题！
+    const questions = [
+        { word: "cat", opts: ["cat", "cut", "cot", "cap"] },
+        { word: "pig", opts: ["peg", "pig", "pug", "big"] },
+        { word: "map", opts: ["mop", "nap", "map", "mat"] },
+        { word: "sun", opts: ["son", "sun", "sum", "sub"] },
+        { word: "red", opts: ["rat", "rid", "rod", "red"] }
+    ];
+let idx = 0, score = 0, canClick = true;
+    function init() {
+        const q = questions[idx];
+        document.getElementById('q-num').innerText = idx + 1;
+        document.getElementById('feedback').innerText = "";
+        document.getElementById('next').style.display = 'none';
+        const opts = document.getElementById('options');
+        opts.innerHTML = "";
+        // 随机打乱选项顺序
+        const shuffledOpts = [...q.opts].sort(() => Math.random() - 0.5);
+        shuffledOpts.forEach(o => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.innerText = o;
+            btn.onclick = () => check(btn, o);
+            opts.appendChild(btn);
+        });
+        canClick = true;
+        // 自动播放一次（稍微延迟一点，体验更好）
+        // setTimeout(playAudio, 300);
+    }
+    function playAudio() {
+        const u = new SpeechSynthesisUtterance(questions[idx].word);
+        u.lang = 'en-US'; u.rate = 0.8;
+        speechSynthesis.speak(u);
+    }
+    function check(btn, val) {
+        if(!canClick) return; canClick = false;
+        const correct = questions[idx].word;
+        if(val === correct) {
+            btn.classList.add('correct');
+            document.getElementById('feedback').innerText = "Bingo! ✅";
+            document.getElementById('feedback').style.color = "#1dd1a1";
+            score += 20; document.getElementById('score').innerText = score;
+            const u = new SpeechSynthesisUtterance("Good job!"); u.lang='en-US'; speechSynthesis.speak(u);
+        } else {
+            btn.classList.add('wrong');
+            document.getElementById('feedback').innerHTML = "Oh no! 它是 <b>" + correct + "</b>";
+            document.getElementById('feedback').style.color = "#ff6b6b";
+            // 把正确的标出来
+            Array.from(document.getElementsByClassName('option-btn')).forEach(b => {
+                if(b.innerText === correct) b.classList.add('correct');
+            });
+            const u = new SpeechSynthesisUtterance("Try again next time."); u.lang='en-US'; speechSynthesis.speak(u);
+        }
+        document.getElementById('next').style.display = 'inline-block';
+    }
+    function nextQ() {
+        idx++;
+        if(idx < questions.length) init();
+        else {
+            document.getElementById('game').style.display = 'none';
+            document.getElementById('result').style.display = 'block';
+            document.getElementById('final-score').innerText = score;
+            const comment = document.getElementById('comment');
+            if(score==100) comment.innerText = "太棒了！全对！🌟";
+            else if(score>=60) comment.innerText = "做得不错，继续加油！💪";
+            else comment.innerText = "还需要多加练习哦~ 📚";
+        }
+    }
+    init();
+</script>
+</body>
+</html>
